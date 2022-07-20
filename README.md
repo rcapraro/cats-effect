@@ -1,1 +1,1 @@
-## Repository for the "Rock the JVM Cats Effect" Course Repository
+## Repository for the "Rock the JVM Cats Effect" Course
