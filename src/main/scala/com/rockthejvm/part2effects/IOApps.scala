@@ -14,29 +14,23 @@ object IOApps {
 }
 
 object TestApp {
-
   import IOApps.*
 
   def main(args: Array[String]): Unit = {
     import cats.effect.unsafe.implicits.global
     program.unsafeRunSync()
   }
-
 }
 
 object FirstCEApp extends IOApp {
-
   import IOApps.*
 
   override def run(args: List[String]): IO[ExitCode] =
     program.as(ExitCode.Success)
-
 }
 
 object SimpleCEApp extends IOApp.Simple {
-
   import IOApps.*
 
   override def run: IO[Unit] = program
-
 }
