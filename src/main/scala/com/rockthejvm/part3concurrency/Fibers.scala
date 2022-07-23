@@ -112,11 +112,11 @@ object Fibers extends IOApp.Simple {
   // 2
   def tupleIOs[A, B](ioa: IO[A], iob: IO[B]): IO[(A, B)] = {
     val result = for {
-      fiba <- ioa.start
-      fibb <- iob.start
-      resulta <- fiba.join
-      resultb <- fibb.join
-    } yield (resulta, resultb)
+      fib_a <- ioa.start
+      fib_b <- iob.start
+      result_a <- fib_a.join
+      result_b <- fib_b.join
+    } yield (result_a, result_b)
 
     result.flatMap {
       case (Succeeded(fa), Succeeded(fb)) => for {
@@ -150,7 +150,7 @@ object Fibers extends IOApp.Simple {
     }
   }
 
-  def testEx3() = {
+  def testEx3(): IO[Unit] = {
     val aComputation = IO("starting").debug >> IO.sleep(1 second) >> IO("done!").debug >> IO(42)
     timeOut(aComputation, 500 millis).debug.void
   }
