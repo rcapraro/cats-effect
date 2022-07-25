@@ -6,9 +6,10 @@ import cats.effect.{FiberIO, IO, IOApp, OutcomeIO}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.*
 import scala.language.postfixOps
-import com.rockthejvm.utils.*
 
 object RacingIOs extends IOApp.Simple {
+
+  import com.rockthejvm.utils.*
 
   def runWithSleep[A](value: A, duration: FiniteDuration): IO[A] =
     (IO(s"Starting computation: $value").debug >>
@@ -65,7 +66,7 @@ object RacingIOs extends IOApp.Simple {
   val testTimeout_v2: IO[String] = importantTask.timeout(3 seconds)
 
   // 2
-  def unrace[A, B](ioa: IO[A], iob: IO[B]): IO[Either[A, B]] =
+  def unRace[A, B](ioa: IO[A], iob: IO[B]): IO[Either[A, B]] =
     IO.racePair(ioa, iob).flatMap {
       case Left((_, fibB)) => fibB.join.flatMap {
         case Succeeded(resultEffect) => resultEffect.map(result => Right(result))
@@ -105,6 +106,6 @@ object RacingIOs extends IOApp.Simple {
   override def run: IO[Unit] = {
     // testRacePair().void
     // timeout(IO.sleep(2 seconds) >> IO("42").debug, 3 seconds).debug.void
-    unrace(IO.sleep(2 seconds) >> IO(42).debug, IO.sleep(1 second) >> IO("scala")).debug.void
+    unRace(IO.sleep(2 seconds) >> IO(42).debug, IO.sleep(1 second) >> IO("scala")).debug.void
   }
 }
