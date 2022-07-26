@@ -25,9 +25,7 @@ object AsyncIOs extends IOApp.Simple {
     42
   }
 
-  def computeMeaningOfLifeEither(): Either[Throwable, Int] = Try {
-    computeMeaningOfLife()
-  }.toEither
+  def computeMeaningOfLifeEither(): Either[Throwable, Int] = Try(computeMeaningOfLife()).toEither
 
   def computeMolOnThreadPool(): Unit = threadPool.execute(() => computeMeaningOfLife())
 
@@ -41,32 +39,32 @@ object AsyncIOs extends IOApp.Simple {
   }
 
   /**
-   * Exercise
+   * Exercise: lift an async computation on ec to an IO.
    */
   def asyncToIO[A](computation: () => A)(using ec: ExecutionContext): IO[A] =
-    IO.async_ { cb =>
-      ec.execute { () =>
+    IO.async_(cb =>
+      ec.execute(() =>
         cb(Try(computation()).toEither)
-      }
-    }
+      )
+    )
 
   val asyncMolIO_v2: IO[Int] = asyncToIO(computeMeaningOfLife)
 
   /**
-   * Exercise: Lift an async computation as a Future, to an IO
+   * Exercise: Lift an async computation as a Future, to an IO.
    */
 
   def convertFutureToIO[A](future: => Future[A]): IO[A] =
-    IO.async_ { cb =>
+    IO.async_(cb =>
       future.onComplete(tryResult => cb(tryResult.toEither))
-    }
+    )
 
   lazy val molFuture: Future[Int] = Future(computeMeaningOfLife())
   val asyncMolIO_v3: IO[Int] = convertFutureToIO(molFuture)
   val asyncMolIO_v4: IO[Int] = IO.fromFuture(IO(molFuture))
 
   /**
-   * Exercise: Create a never-ending IO
+   * Exercise: Create a never-ending IO.
    */
   val neverEndingIO: IO[Int] = IO.async_[Int] { _ => () } // no callback, no finish
   val neverEndingIO_v2: IO[Int] = IO.never[Int]
