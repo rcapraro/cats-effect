@@ -1,7 +1,6 @@
 package com.rockthejvm.part3concurrency
 
-import cats.effect.IOApp
-import cats.effect.IO
+import cats.effect.{IO, IOApp}
 
 import scala.concurrent.duration.*
 import scala.language.postfixOps

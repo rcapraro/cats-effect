@@ -2,10 +2,10 @@ package com.rockthejvm.part3concurrency
 
 import cats.effect.IO.{IOCont, Uncancelable}
 import cats.effect.kernel.Outcome.{Canceled, Errored, Succeeded}
-import cats.effect.{Fiber, FiberIO, IO, IOApp, Outcome, OutcomeIO}
+import cats.effect.*
 
-import scala.language.postfixOps
 import scala.concurrent.duration.*
+import scala.language.postfixOps
 
 object Fibers extends IOApp.Simple {
 

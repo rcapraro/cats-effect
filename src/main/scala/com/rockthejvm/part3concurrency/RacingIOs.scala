@@ -3,7 +3,6 @@ package com.rockthejvm.part3concurrency
 import cats.effect.kernel.Outcome.{Canceled, Errored, Succeeded}
 import cats.effect.{FiberIO, IO, IOApp, OutcomeIO}
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.*
 import scala.language.postfixOps
 

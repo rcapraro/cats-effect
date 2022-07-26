@@ -27,12 +27,12 @@ object IOTraversal extends IOApp.Simple{
   }
 
   import cats.Traverse
-  import cats.instances.list._
+  import cats.instances.list.*
   val listTraverse: Traverse[List] = Traverse[List]
 
   def traverseFutures(): Unit = {
     // traverse
-    import cats.instances.list._
+    import cats.instances.list.*
     val listTraverse = Traverse[List]
     val singleFuture: Future[List[Int]] = listTraverse.traverse(workload)(heavyComputation)
     // this stores ALL the result
