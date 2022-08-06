@@ -128,7 +128,8 @@ object Resources extends IOApp.Simple {
   val openConnection: IO[String] =
     connectionFromConfigurationClean("src/main/resources/connection.txt")
       .use(conn => conn.open >> IO.never)
-  val canceledConnection = for {
+      
+  val canceledConnection: IO[Unit] = for {
     fib <- openConnection.start
     _ <- IO.sleep(1 second) >> IO("Canceling!").debug >> fib.cancel
   } yield ()

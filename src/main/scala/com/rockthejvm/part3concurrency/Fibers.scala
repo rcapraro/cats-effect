@@ -1,8 +1,8 @@
 package com.rockthejvm.part3concurrency
 
+import cats.effect.*
 import cats.effect.IO.{IOCont, Uncancelable}
 import cats.effect.kernel.Outcome.{Canceled, Errored, Succeeded}
-import cats.effect.*
 
 import scala.concurrent.duration.*
 import scala.language.postfixOps
