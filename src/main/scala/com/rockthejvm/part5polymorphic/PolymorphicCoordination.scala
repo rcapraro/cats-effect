@@ -21,11 +21,11 @@ object PolymorphicCoordination extends IOApp.Simple {
   // capabilities: pure, map/flatMap, raiseError, uncancelable, start (fibers), +ref/deferred
 
   import com.rockthejvm.utils.general.*
+
   import scala.concurrent.duration.*
   import scala.language.postfixOps
 
-  def alarm(): IO[Unit] =
-  {
+  def alarm(): IO[Unit] = {
     def notifyAlarm(signal: Deferred[IO, Unit]): IO[Unit] = for {
       _ <- IO("[Notifier] Counter on some other fiber, waiting...").debug
       _ <- signal.get
@@ -50,9 +50,9 @@ object PolymorphicCoordination extends IOApp.Simple {
     } yield ()
   }
 
-  import cats.syntax.functor.* // map
-  import cats.syntax.flatMap.* // flatMap
-  import cats.effect.syntax.spawn.* // start extension method
+  import cats.effect.syntax.spawn.*
+  import cats.syntax.flatMap.*
+  import cats.syntax.functor.* // start extension method
 
   def polymorphicAlarm[F[_]](using concurrent: Concurrent[F]): F[Unit] = {
     def notifyAlarm(signal: Deferred[F, Unit]): F[Unit] = for {
@@ -79,6 +79,43 @@ object PolymorphicCoordination extends IOApp.Simple {
     } yield ()
   }
 
-  override def run: IO[Unit] = polymorphicAlarm[IO]
+  /*
+  Exercises
+    1. Generalize racePair
+    2. Generalize the Mutex concurrency primitive for any F
+  */
+  type RaceResult[F[_], A, B] = Either[
+    (Outcome[F, Throwable, A], Fiber[F, Throwable, B]), // (winner result, loser fiber)
+    (Fiber[F, Throwable, A], Outcome[F, Throwable, B]) // (loser fiber, winner result)
+  ]
+
+  type EitherOutcome[F[_], A, B] = Either[Outcome[F, Throwable, A], Outcome[F, Throwable, B]]
+
+  import cats.effect.syntax.monadCancel.* //guaranteeCase extension method
+  import cats.effect.syntax.spawn.* // start extension method
+
+  def ourRacePair[F[_], A, B](ioa: F[A], iob: F[B])(using concurrent: Concurrent[F]): F[RaceResult[F, A, B]] =
+    concurrent.uncancelable { poll =>
+      for {
+        signal <- concurrent.deferred[EitherOutcome[F, A, B]]
+        fibA <- ioa.guaranteeCase(outcomeA => signal.complete(Left(outcomeA)).void).start
+        fibB <- iob.guaranteeCase(outcomeB => signal.complete(Right(outcomeB)).void).start
+        result <- poll(signal.get).onCancel { // blocking call - should be cancelable
+          for {
+            cancelFibA <- fibA.cancel.start
+            cancelFibB <- fibB.cancel.start
+            _ <- cancelFibA.join
+            _ <- cancelFibB.join
+          } yield ()
+        }
+      } yield result match {
+        case Left(outcomeA) => Left((outcomeA, fibB))
+        case Right(outcomeB) => Right((fibA, outcomeB))
+      }
+    }
+
+  override def run: IO[Unit] = {
+    polymorphicAlarm[IO]
+  }
 
 }
