@@ -28,7 +28,7 @@ object PolymorphicTemporalSuspension extends IOApp.Simple {
   def timeout[F[_], A](fa: F[A], duration: FiniteDuration)(using temporal: Temporal[F]): F[A] = {
     temporal.race(fa, temporal.sleep(duration)).flatMap {
       case Left(value) => temporal.pure(value)
-      case Right(_) => temporal.raiseError(RuntimeException("Computation timed out!"))
+      case Right(_)    => temporal.raiseError(RuntimeException("Computation timed out!"))
     }
   }
 

@@ -10,7 +10,7 @@ object CatsTypeClasses {
   - apply
   - applicativeError/monadError
   - traverse
-  */
+   */
 
   // functor - "mappable" data structure
   trait MyFunctor[F[_]] {
@@ -30,7 +30,7 @@ object CatsTypeClasses {
 
   import cats.syntax.functor.*
 
-  def increment_v2[F[_] : Functor](container: F[Int]): F[Int] =
+  def increment_v2[F[_]: Functor](container: F[Int]): F[Int] =
     container.map(_ + 1)
 
   // applicatives - the ability to "wrap" types
@@ -42,7 +42,7 @@ object CatsTypeClasses {
   import cats.Applicative
 
   val applicativeList: Applicative[List] = Applicative[List]
-  val aSimpleList: List[Int] = applicativeList.pure(42)
+  val aSimpleList: List[Int]             = applicativeList.pure(42)
 
   import cats.syntax.applicative.* // imports the pure extension method
 
@@ -59,7 +59,7 @@ object CatsTypeClasses {
 
   import cats.syntax.flatMap.* // flatmap extension method
 
-  def crossProduct[F[_] : FlatMap, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
+  def crossProduct[F[_]: FlatMap, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
     fa.flatMap(a => fb.map(b => (a, b)))
 
   // Monad - applicative + flatMap
@@ -76,7 +76,6 @@ object CatsTypeClasses {
       b <- fb
     } yield (a, b)
 
-
   // error-like type classes in cats
 
   trait MyApplicativeError[F[_], E] extends MyApplicative[F] {
@@ -87,8 +86,8 @@ object CatsTypeClasses {
   type ErrorOr[A] = Either[String, A]
 
   val appErrorEither: ApplicativeError[ErrorOr, String] = ApplicativeError[ErrorOr, String]
-  val desirableValue: ErrorOr[Int] = appErrorEither.pure(42)
-  val failedValue: ErrorOr[Int] = appErrorEither.raiseError("Something failed")
+  val desirableValue: ErrorOr[Int]                      = appErrorEither.pure(42)
+  val failedValue: ErrorOr[Int]                         = appErrorEither.raiseError("Something failed")
 
   import cats.syntax.applicativeError.* // raiseError extension method
   val failedValue_v2: ErrorOr[Int] = "Something failed".raiseError[ErrorOr, Int]
@@ -107,11 +106,10 @@ object CatsTypeClasses {
   val listOfOptions: List[Option[Int]] = List(Some(1), Some(2), Some(42))
 
   import cats.Traverse
-  val listTraverse: Traverse[List] = Traverse[List]
+  val listTraverse: Traverse[List]  = Traverse[List]
   val optionList: Option[List[Int]] = listTraverse.traverse(List(1, 2, 3))(x => Option(x))
 
   import cats.syntax.traverse.*
-  val optionList_v2: Any = List(1,2,3).traverse(x => Option(x))
-
+  val optionList_v2: Any = List(1, 2, 3).traverse(x => Option(x))
 
 }

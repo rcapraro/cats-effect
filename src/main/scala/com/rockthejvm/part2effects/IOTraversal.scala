@@ -5,7 +5,7 @@ import cats.effect.{IO, IOApp}
 import scala.concurrent.Future
 import scala.util.Random
 
-object IOTraversal extends IOApp.Simple{
+object IOTraversal extends IOApp.Simple {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -33,7 +33,7 @@ object IOTraversal extends IOApp.Simple{
   def traverseFutures(): Unit = {
     // traverse
     import cats.instances.list.*
-    val listTraverse = Traverse[List]
+    val listTraverse                    = Traverse[List]
     val singleFuture: Future[List[Int]] = listTraverse.traverse(workload)(heavyComputation)
     // this stores ALL the result
     singleFuture.foreach(println)
@@ -46,16 +46,15 @@ object IOTraversal extends IOApp.Simple{
     string.split(" ").length
   }.debug
 
-  val ios: List[IO[Int]] = workload.map(computeAsIO)
+  val ios: List[IO[Int]]      = workload.map(computeAsIO)
   val singleIO: IO[List[Int]] = listTraverse.traverse(workload)(computeAsIO)
 
   // parallel traversal
   import cats.syntax.parallel.*
   val parallelSingleIO: IO[List[Int]] = workload.parTraverse(computeAsIO)
 
-  /**
-   * Exercises
-   */
+  /** Exercises
+    */
   // hint use the Traverse API
   def sequence[A](listOfIOs: List[IO[A]]): IO[List[A]] =
     listTraverse.traverse(listOfIOs)(identity)
@@ -74,7 +73,7 @@ object IOTraversal extends IOApp.Simple{
   }
 
   // existing sequence API
-  val singleIO_v2: IO[List[Int]] = listTraverse.sequence(ios)
+  val singleIO_v2: IO[List[Int]]         = listTraverse.sequence(ios)
   val parallelSingleIO_v2: IO[List[Int]] = ios.parSequence // extension method from the 'cats.syntax.parallel.*' package
 
   override def run: IO[Unit] =

@@ -9,12 +9,12 @@ object IOErrorHandling {
   // IO: we know pure, delay, defer
   // we want to create failed effects
   val aFailedCompute: IO[Int] = IO.delay(throw new RuntimeException("A failure"))
-  val aFailure: IO[Int] = IO.raiseError(new RuntimeException("A proper failure"))
+  val aFailure: IO[Int]       = IO.raiseError(new RuntimeException("A proper failure"))
 
   // handle exceptions
-  val dealWithIt: IO[AnyVal] = aFailure.handleErrorWith {
-    case _: RuntimeException => IO.delay(println("I'm still here"))
-    // add more cases
+  val dealWithIt: IO[AnyVal] = aFailure.handleErrorWith { case _: RuntimeException =>
+    IO.delay(println("I'm still here"))
+  // add more cases
   }
 
   // turn into an Either
@@ -29,26 +29,25 @@ object IOErrorHandling {
     resultAsEffect.unsafeRunSync()
   }
 
-  /**
-   * Exercises
-   */
+  /** Exercises
+    */
 
   // 1 - construct potentially failed IOs from standard data types (Option, Try, Either)
   def option2IO[A](option: Option[A])(ifEmpty: Throwable): IO[A] =
     option match {
       case Some(value) => IO.pure(value)
-      case None => IO.raiseError(ifEmpty)
+      case None        => IO.raiseError(ifEmpty)
     }
 
   def try2IO[A](aTry: Try[A]): IO[A] =
     aTry match {
-      case Success(value) => IO.pure(value)
+      case Success(value)     => IO.pure(value)
       case Failure(exception) => IO.raiseError(exception)
     }
 
   def either2IO[A](anEither: Either[Throwable, A]): IO[A] =
     anEither match {
-      case Right(value) => IO.pure(value)
+      case Right(value)    => IO.pure(value)
       case Left(exception) => IO.raiseError(exception)
     }
 

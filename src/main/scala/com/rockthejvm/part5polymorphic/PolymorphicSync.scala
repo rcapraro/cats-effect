@@ -30,7 +30,7 @@ object PolymorphicSync extends IOApp.Simple {
 
   val syncIO: Sync[IO] = Sync[IO] // given Sync[IO] in scope
 
-  //abilities: pure, flat/flatMap, raiseError, uncancelable, +delay/blocking
+  // abilities: pure, flat/flatMap, raiseError, uncancelable, +delay/blocking
   val aDelayedIO_v2: IO[Int] = syncIO.delay {
     println("I'm an effect!")
     42
@@ -56,8 +56,8 @@ object PolymorphicSync extends IOApp.Simple {
   import cats.syntax.functor.*
 
   object Console {
-    def apply[F[_]](using sync: Sync[F]): F[Console[F]] = sync.pure((System.in, System.out)).map {
-      case (in, out) => new Console[F] {
+    def apply[F[_]](using sync: Sync[F]): F[Console[F]] = sync.pure((System.in, System.out)).map { case (in, out) =>
+      new Console[F] {
         def println[A](a: A): F[Unit] =
           sync.blocking(out.println(a))
 
@@ -75,9 +75,9 @@ object PolymorphicSync extends IOApp.Simple {
 
   def consoleReader(): IO[Unit] = for {
     console <- Console.apply[IO]
-    _ <- console.println("Hi, what's your name?")
-    name <- console.readLine()
-    _ <- console.println(s"Hi $name, nice to meet you!")
+    _       <- console.println("Hi, what's your name?")
+    name    <- console.readLine()
+    _       <- console.println(s"Hi $name, nice to meet you!")
   } yield ()
 
   override def run: IO[Unit] = consoleReader()

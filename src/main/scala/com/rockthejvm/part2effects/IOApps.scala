@@ -8,7 +8,7 @@ object IOApps {
 
   val program: IO[Unit] = for {
     line <- IO(StdIn.readLine())
-    _ <- IO(println(s"You've just written: $line"))
+    _    <- IO(println(s"You've just written: $line"))
   } yield ()
 
 }

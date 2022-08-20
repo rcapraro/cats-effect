@@ -10,7 +10,7 @@ import scala.language.postfixOps
 object Refs extends IOApp.Simple {
 
   // ref = purely functional atomic reference
-  val atomicMol: IO[Ref[IO, Int]] = Ref[IO].of(42)
+  val atomicMol: IO[Ref[IO, Int]]    = Ref[IO].of(42)
   val atomicMol_v2: IO[Ref[IO, Int]] = IO.ref(42)
 
   // modifying is an effect
@@ -34,7 +34,7 @@ object Refs extends IOApp.Simple {
 
   val updatedMol: IO[Ref[IO, Int]] = atomicMol.flatTap { ref =>
     ref.updateAndGet(value => value * 10) // get the new value
-    // can also use getAndUpdate to get the OLD value
+  // can also use getAndUpdate to get the OLD value
   }
 
   // modifying with a function returning a different type
@@ -45,16 +45,15 @@ object Refs extends IOApp.Simple {
   // why: concurrent + thread-safe reads/writes over shared values, in a purely functional way
   def demoConcurrentWorkImpure(): IO[Unit] = {
 
-
     var count = 0
 
     def task(workload: String): IO[Unit] = {
       val wordCount = workload.split(" ").length
       for {
-        _ <- IO(s"Counting word for '$workload': $wordCount").debug
+        _        <- IO(s"Counting word for '$workload': $wordCount").debug
         newCount <- IO(count + wordCount)
-        _ <- IO(s"New total: $newCount").debug
-        _ <- IO(count += wordCount)
+        _        <- IO(s"New total: $newCount").debug
+        _        <- IO(count += wordCount)
       } yield ()
     }
 
@@ -76,9 +75,9 @@ object Refs extends IOApp.Simple {
     def task(workload: String, total: Ref[IO, Int]): IO[Unit] = {
       val wordCount = workload.split(" ").length
       for {
-        _ <- IO(s"Counting word for '$workload': $wordCount").debug
+        _        <- IO(s"Counting word for '$workload': $wordCount").debug
         newCount <- total.updateAndGet(currentCount => currentCount + wordCount)
-        _ <- IO(s"New total: $newCount").debug
+        _        <- IO(s"New total: $newCount").debug
       } yield ()
     }
 
@@ -132,7 +131,7 @@ object Refs extends IOApp.Simple {
 
     for {
       initialTicks <- Ref[IO].of(0)
-      _ <- (tickingClock(initialTicks), printTicks(initialTicks)).parTupled
+      _            <- (tickingClock(initialTicks), printTicks(initialTicks)).parTupled
     } yield ()
   }
 
@@ -148,11 +147,11 @@ object Refs extends IOApp.Simple {
     } yield ()
 
     def printTicks: IO[Unit] = for {
-      t <- ticks // ticks will give you a NEW Ref
-      _ <- IO.sleep(5 seconds)
+      t            <- ticks // ticks will give you a NEW Ref
+      _            <- IO.sleep(5 seconds)
       currentTicks <- t.get
-      _ <- IO(s"Ticks: $currentTicks").debug
-      _ <- printTicks
+      _            <- IO(s"Ticks: $currentTicks").debug
+      _            <- printTicks
     } yield ()
 
     for {

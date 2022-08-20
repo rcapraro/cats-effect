@@ -26,7 +26,7 @@ object IOIntroduction {
   def smallProgram(): IO[Unit] = for {
     line1 <- IO(StdIn.readLine())
     line2 <- IO(StdIn.readLine())
-    _ <- IO.delay(println(s"$line1 $line2"))
+    _     <- IO.delay(println(s"$line1 $line2"))
   } yield ()
 
   // mapN from cats Apply - combine IO effects as Tuples
@@ -38,9 +38,8 @@ object IOIntroduction {
   def smallProgram_v2(): IO[Unit] =
     (IO(StdIn.readLine()), IO(StdIn.readLine())).mapN(_ + _).map(println)
 
-  /**
-   * Exercises
-   */
+  /** Exercises
+    */
 
   // 1 - sequence two IOs and take the result of the LAST one
   // hint: use flatMap
@@ -96,20 +95,22 @@ object IOIntroduction {
 
   def sumIO(n: Int): IO[Int] =
     if (n <= 0) IO(0)
-    else for {
-      lastNumber <- IO(n)
-      prevSum <- sumIO(n - 1)
-    } yield prevSum + lastNumber
+    else
+      for {
+        lastNumber <- IO(n)
+        prevSum    <- sumIO(n - 1)
+      } yield prevSum + lastNumber
   // based on FlatMap (TC) chains so stack safe !
 
   // 7 (hard) - write a fibonacci IO that does not crash on recursion
   // hints: use recursion, ignore exponential complexity, use flatMap heavily
   def fibonacciIO(n: Int): IO[BigInt] =
     if (n < 2) IO(1)
-    else for {
-      last <- IO.defer(fibonacciIO(n - 1)) // same as IO(...).flatten (or IO.delay(...).flatten)
-      prev <- IO.defer(fibonacciIO(n - 2))
-    } yield last + prev
+    else
+      for {
+        last <- IO.defer(fibonacciIO(n - 1)) // same as IO(...).flatten (or IO.delay(...).flatten)
+        prev <- IO.defer(fibonacciIO(n - 2))
+      } yield last + prev
 
   def main(args: Array[String]): Unit = {
     import cats.effect.unsafe.implicits.global // "platform"

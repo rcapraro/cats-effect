@@ -9,20 +9,20 @@ object Effects {
   // substitution
   def combine(a: Int, b: Int): Int = a + b
 
-  val five: Int = combine(2, 3)
+  val five: Int    = combine(2, 3)
   val five_v2: Int = 2 + 3
-  val five_v3 = 5
+  val five_v3      = 5
 
   // referential transparency = can replace an expression with its value
   //    as many times as we want without changing behavior
 
   // example: print to the console
-  val printSomething: Unit = println("Cats Effect")
+  val printSomething: Unit    = println("Cats Effect")
   val printSomething_v2: Unit = () // not the same
 
   // example: change a variable
-  var anInt = 0
-  val changingVar: Unit = (anInt += 1)
+  var anInt                = 0
+  val changingVar: Unit    = (anInt += 1)
   val changingVar_v2: Unit = () // not the same
 
   // side effects are inevitable for useful programs
@@ -33,7 +33,7 @@ object Effects {
      - type signature describes the kind of calculation that will be performed
      - type signature describes the VALUE that will be calculated
      - when side effects are needed, effect construction is separate from effect execution
-    */
+   */
 
   /*
     example: Option is an effect type
@@ -48,7 +48,7 @@ object Effects {
    - describes an asynchronous computation
    - computes a value of type A, if it's successful
    - side effect is required (allocating/scheduling a thread), execution is NOT separate from construction
-  */
+   */
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -60,7 +60,7 @@ object Effects {
   - calculates a value of type A, if it's successful
   - side effects are required for the evaluation of () => A
     - YES, the creation of MyIO does NOT produce the side effects on construction
- */
+   */
   case class MyIO[A](unsafeRun: () => A) {
     def map[B](f: A => B): MyIO[B] =
       MyIO(() => f(unsafeRun()))
@@ -74,13 +74,10 @@ object Effects {
     42
   })
 
-  /**
-   * Exercises
-   *  1. An IO which returns the current time of the system
-   *     2. An IO which measures the duration of a computation (hint: use ex 1)
-   *     3. An IO which prints something to the console
-   *     4. An IO which reads a line (a string) from the std input
-   */
+  /** Exercises
+    *   1. An IO which returns the current time of the system 2. An IO which measures the duration of a computation (hint: use ex 1) 3. An IO which prints
+    *      something to the console 4. An IO which reads a line (a string) from the std input
+    */
 
   // 1
   val clock = MyIO(() => System.currentTimeMillis())
@@ -88,8 +85,8 @@ object Effects {
   // 2
   def measureTime[A](computation: MyIO[A]): MyIO[Long] =
     for {
-      startTime <- clock
-      _ <- computation
+      startTime  <- clock
+      _          <- computation
       finishTime <- clock
     } yield finishTime - startTime
 
@@ -106,10 +103,10 @@ object Effects {
 
   def testConsole(): Unit = {
     val program: MyIO[Unit] = for {
-      _ <- putStrLn("Enter two words:")
+      _     <- putStrLn("Enter two words:")
       line1 <- readLn
       line2 <- readLn
-      _ <- putStrLn(s"Result is: $line1 $line2")
+      _     <- putStrLn(s"Result is: $line1 $line2")
     } yield ()
 
     program.unsafeRun()

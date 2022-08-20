@@ -17,7 +17,7 @@ object CountdownLatches extends IOApp.Simple {
   Countdown Latches are a coordination primitive initialized with a count.
   All fibers calling await() on the Countdown Latch are (semantically) blocked.
   When the internal count of the latch reaches 0 (via release() calls from other fibers), all waiting fibers are unblocked.
-  */
+   */
 
   def announcer(latch: CountDownLatch[IO]): IO[Unit] = for {
     _ <- IO("Starting race shortly...").debug >> IO.sleep(2 seconds)
@@ -41,10 +41,10 @@ object CountdownLatches extends IOApp.Simple {
   } yield ()
 
   def sprint(): IO[Unit] = for {
-    latch <- CountDownLatch[IO](5)
+    latch        <- CountDownLatch[IO](5)
     announcerFib <- announcer(latch).start
-    _ <- (1 to 10).toList.parTraverse(id => createRunner(id, latch))
-    _ <- announcerFib.join
+    _            <- (1 to 10).toList.parTraverse(id => createRunner(id, latch))
+    _            <- announcerFib.join
   } yield ()
 
   /*
@@ -75,8 +75,8 @@ object CountdownLatches extends IOApp.Simple {
       writer <- Resource.make(IO(new FileWriter(new File(toPath), true)))(writer => IO(writer.close()))
     } yield (reader, writer)
 
-    compositeResource.use {
-      case (reader, writer) => IO(reader.getLines().foreach(writer.write))
+    compositeResource.use { case (reader, writer) =>
+      IO(reader.getLines().foreach(writer.write))
     }
   }
 
@@ -88,32 +88,31 @@ object CountdownLatches extends IOApp.Simple {
   - after all chunks are done, stitch the files together under the same file on disk
    */
   def downloadFile(fileName: String, destinationFolder: String): IO[Unit] = for {
-    n <- FileServer.getNumberOfChunks
+    n     <- FileServer.getNumberOfChunks
     latch <- CountDownLatch[IO](n)
-    _ <- IO(s"Download started on $n fibers").debug
-    _ <- (0 until n).toList.parTraverse(id => createDownloaderTask(id, latch, fileName, destinationFolder))
-    _ <- latch.await
-    _ <- (0 until n).toList.parTraverse(id => appendFileContents(s"$destinationFolder/$fileName.part$id", s"$destinationFolder/$fileName"))
+    _     <- IO(s"Download started on $n fibers").debug
+    _     <- (0 until n).toList.parTraverse(id => createDownloaderTask(id, latch, fileName, destinationFolder))
+    _     <- latch.await
+    _     <- (0 until n).toList.parTraverse(id => appendFileContents(s"$destinationFolder/$fileName.part$id", s"$destinationFolder/$fileName"))
   } yield ()
 
   def createDownloaderTask(id: Int, latch: CountDownLatch[IO], fileName: String, destinationFolder: String): IO[Unit] = for {
-    _ <- IO(s"[task $id] Downloading chunk...").debug
-    _ <- IO.sleep((Random.nextDouble * 1000).toInt.millis)
+    _     <- IO(s"[task $id] Downloading chunk...").debug
+    _     <- IO.sleep((Random.nextDouble * 1000).toInt.millis)
     chunk <- FileServer.getFileChunk(id)
-    _ <- writeToFile(s"$destinationFolder/$fileName.part$id", chunk)
-    _ <- IO(s"[task $id] Chunk download complete").debug
-    _ <- latch.release
+    _     <- writeToFile(s"$destinationFolder/$fileName.part$id", chunk)
+    _     <- IO(s"[task $id] Chunk download complete").debug
+    _     <- latch.release
   } yield ()
 
-
   override def run: IO[Unit] = {
-    //sprint()
+    // sprint()
     downloadFile("scalaFile.txt", "src/main/resources")
   }
 
   /*
   Exercises: implement you own CountdownLatch with Ref and Deferred.
-  */
+   */
   abstract class CDLatch {
     def await: IO[Unit]
 
@@ -130,18 +129,21 @@ object CountdownLatches extends IOApp.Simple {
 
     def apply(count: Int): IO[CDLatch] = for {
       signal <- Deferred[IO, Unit]
-      state <- Ref[IO].of[State](Live(count, signal))
+      state  <- Ref[IO].of[State](Live(count, signal))
     } yield new CDLatch {
       override def await: IO[Unit] = state.get.flatMap { s =>
         if (s == Done) IO.unit // continue, the latch is done
-        else signal.get // block here
+        else signal.get        // block here
       }
 
-      override def release: IO[Unit] = state.modify {
-        case Done => Done -> IO.unit
-        case Live(1, signal) => Done -> signal.complete(()).void
-        case Live(n, signal) => Live(n - 1, signal) -> IO.unit
-      }.flatten.uncancelable
+      override def release: IO[Unit] = state
+        .modify {
+          case Done            => Done                -> IO.unit
+          case Live(1, signal) => Done                -> signal.complete(()).void
+          case Live(n, signal) => Live(n - 1, signal) -> IO.unit
+        }
+        .flatten
+        .uncancelable
     }
   }
 }

@@ -30,10 +30,10 @@ object ContextualAbstractionsScala3 {
   }
 
   val numbers: List[Int] = (1 to 10).toList
-  val sum10: Int = combineAll(numbers) // intCombiner passed automatically
+  val sum10: Int         = combineAll(numbers) // intCombiner passed automatically
 
   // synthesize given instances
-  given optionCombiner[T] (using combiner: Combiner[T]): Combiner[Option[T]] with {
+  given optionCombiner[T](using combiner: Combiner[T]): Combiner[Option[T]] with {
     override def empty: Option[T] = Some(combiner.empty)
 
     override def combine(x: Option[T], y: Option[T]): Option[T] = for {
@@ -49,11 +49,10 @@ object ContextualAbstractionsScala3 {
     def greet(): String = s"Hi, my name is $name"
   }
 
-  extension (name: String)
-    def greet(): String = Person(name).greet()
+  extension (name: String) def greet(): String = Person(name).greet()
 
   // generic extension
-  extension[T] (list: List[T])
+  extension [T](list: List[T])
     def reduceAll(using combiner: Combiner[T]): T =
       list.foldLeft(combiner.empty)(combiner.combine)
 
@@ -95,8 +94,7 @@ object ContextualAbstractionsScala3 {
       list.map(serializer.toJSON).mkString("[", ", ", "]")
 
     // part4 - extension methods
-    extension [T](value: T)
-      def toJson(using serializer: JSONSerializer[T]): String = serializer.toJSON(value)
+    extension [T](value: T) def toJson(using serializer: JSONSerializer[T]): String = serializer.toJSON(value)
 
     @main
     def test(): Unit = {

@@ -32,7 +32,8 @@ object MutexGeneric {
 
   def createSignal[F[_]](using concurrent: Concurrent[F]): F[Signal[F]] = concurrent.deferred[Unit]
 
-  def create[F[_]](using concurrent: Concurrent[F]): F[MutexGeneric[F]] = concurrent.ref(unlocked).map(initialState => createMutexWithCancellation(initialState))
+  def create[F[_]](using concurrent: Concurrent[F]): F[MutexGeneric[F]] =
+    concurrent.ref(unlocked).map(initialState => createMutexWithCancellation(initialState))
 
   def createMutexWithCancellation[F[_]](state: Ref[F, State[F]])(using concurrent: Concurrent[F]): MutexGeneric[F] =
     new MutexGeneric[F] {
@@ -40,18 +41,17 @@ object MutexGeneric {
         Change the state of the Ref:
         - if the mutex is currently unlocked, state becomes (true, [])
         - if the mutex is locked, state becomes (true, queue + new signal) AND WAIT ON THAT SIGNAL.
-      */
+       */
       override def acquire: F[Unit] = concurrent.uncancelable { poll =>
         createSignal.flatMap { signal =>
 
-          val cleanup = state.modify {
-            case State(locked, queue) =>
-              val newQueue = queue.filterNot(_ eq signal)
-              State[F](locked, newQueue) -> release
+          val cleanup = state.modify { case State(locked, queue) =>
+            val newQueue = queue.filterNot(_ eq signal)
+            State[F](locked, newQueue) -> release
           }.flatten
 
           state.modify {
-            case State(false, _) => State[F](locked = true, Queue()) -> concurrent.unit
+            case State(false, _)    => State[F](locked = true, Queue())               -> concurrent.unit
             case State(true, queue) => State[F](locked = true, queue.enqueue(signal)) -> poll(signal.get).onCancel(cleanup)
           }.flatten
         }
@@ -101,18 +101,17 @@ object Mutex {
         Change the state of the Ref:
         - if the mutex is currently unlocked, state becomes (true, [])
         - if the mutex is locked, state becomes (true, queue + new signal) AND WAIT ON THAT SIGNAL.
-      */
+       */
       override def acquire: IO[Unit] = IO.uncancelable { poll =>
         createSignal.flatMap { signal =>
 
-          val cleanup: IO[Unit] = state.modify {
-            case State(locked, queue) =>
-              val newQueue = queue.filterNot(_ eq signal)
-              State(locked, newQueue) -> release
+          val cleanup: IO[Unit] = state.modify { case State(locked, queue) =>
+            val newQueue = queue.filterNot(_ eq signal)
+            State(locked, newQueue) -> release
           }.flatten
 
           state.modify {
-            case State(false, _) => State(locked = true, Queue()) -> IO.unit
+            case State(false, _)    => State(locked = true, Queue())               -> IO.unit
             case State(true, queue) => State(locked = true, queue.enqueue(signal)) -> poll(signal.get).onCancel(cleanup)
           }.flatten // modify returns IO[B], ou B is IO[Unit], so modify returns O[IO[Unit]], we need to flatten
         }
@@ -142,10 +141,10 @@ object Mutex {
         Change the state of the Ref:
         - if the mutex is currently unlocked, state becomes (true, [])
         - if the mutex is locked, state becomes (true, queue + new signal) AND WAIT ON THAT SIGNAL.
-      */
+       */
       override def acquire: IO[Unit] = createSignal.flatMap { signal =>
         state.modify { // IO[IO[Unit]]
-          case State(false, _) => State(locked = true, Queue()) -> IO.unit
+          case State(false, _)    => State(locked = true, Queue())               -> IO.unit
           case State(true, queue) => State(locked = true, queue.enqueue(signal)) -> signal.get
         }.flatten
       }
@@ -174,9 +173,9 @@ object MutexPlayground extends IOApp.Simple {
   def criticalTask(): IO[Int] = IO.sleep(1 second) >> IO(Random.nextInt(100))
 
   def createNonLockingTask(id: Int): IO[Int] = for {
-    _ <- IO(s"[task $id] working...").debug
+    _   <- IO(s"[task $id] working...").debug
     res <- criticalTask()
-    _ <- IO(s"[task $id] got result: $res").debug
+    _   <- IO(s"[task $id] got result: $res").debug
   } yield res
 
   def demoNonLockingTask(): IO[List[Int]] = (1 to 10).toList.parTraverse(createNonLockingTask)
@@ -185,35 +184,36 @@ object MutexPlayground extends IOApp.Simple {
     _ <- IO(s"[task $id] waiting for permission...").debug
     _ <- mutex.acquire // this blocks if the mutex has been acquired by some other fiber
     // critical section
-    _ <- IO(s"[task $id] working...")
+    _   <- IO(s"[task $id] working...")
     res <- criticalTask()
-    _ <- IO(s"[task $id] got result: $res").debug
+    _   <- IO(s"[task $id] got result: $res").debug
     // critical section end
     + <- mutex.release
     _ <- IO(s"[task $id] lock removed.").debug
   } yield res
 
   def demoLockingTask(): IO[List[Int]] = for {
-    mutex <- MutexGeneric.create[IO]
+    mutex   <- MutexGeneric.create[IO]
     results <- (1 to 10).toList.parTraverse(id => createLockingTask(id, mutex))
   } yield results
-  //only one task will proceed at one time
+  // only one task will proceed at one time
 
   def createCancellingTask(id: Int, mutex: MutexGeneric[IO]): IO[Int] =
     if (id % 2 == 0) createLockingTask(id, mutex)
-    else for {
-      fib <- createLockingTask(id, mutex).onCancel(IO(s"[task $id] received cancellation!").debug.void).start
-      _ <- IO.sleep(2 seconds) >> fib.cancel
-      out <- fib.join
-      result <- out match {
-        case Succeeded(effect) => effect
-        case Errored(_) => IO(-1)
-        case Canceled() => IO(-2)
-      }
-    } yield result
+    else
+      for {
+        fib <- createLockingTask(id, mutex).onCancel(IO(s"[task $id] received cancellation!").debug.void).start
+        _   <- IO.sleep(2 seconds) >> fib.cancel
+        out <- fib.join
+        result <- out match {
+          case Succeeded(effect) => effect
+          case Errored(_)        => IO(-1)
+          case Canceled()        => IO(-2)
+        }
+      } yield result
 
   def demoCancellingTasks(): IO[List[Int]] = for {
-    mutex <- MutexGeneric.create[IO]
+    mutex   <- MutexGeneric.create[IO]
     results <- (1 to 10).toList.parTraverse(id => createCancellingTask(id, mutex))
   } yield results
 

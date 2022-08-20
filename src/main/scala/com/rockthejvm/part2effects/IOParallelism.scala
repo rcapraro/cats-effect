@@ -7,11 +7,11 @@ import cats.effect.{IO, IOApp}
 object IOParallelism extends IOApp.Simple {
 
   // IOs are usually sequential
-  val aniIO: IO[String] = IO(s"[${Thread.currentThread().getName}] Ani")
+  val aniIO: IO[String]    = IO(s"[${Thread.currentThread().getName}] Ani")
   val kamranIO: IO[String] = IO(s"[${Thread.currentThread().getName}] Kamran")
 
   val composedIO: IO[String] = for {
-    ani <- aniIO
+    ani    <- aniIO
     kamran <- kamranIO
   } yield s"$ani and $kamran love Rock the JVM"
 
@@ -20,14 +20,14 @@ object IOParallelism extends IOApp.Simple {
   // mapN extension method
   import cats.syntax.apply.*
 
-  val meaningOfLife: IO[Int] = IO.delay(42)
+  val meaningOfLife: IO[Int]       = IO.delay(42)
   val favoriteLanguage: IO[String] = IO.delay("Scala")
 
   val goalInLife: IO[String] = (meaningOfLife.debug, favoriteLanguage.debug).mapN((num, str) => s"My goal in life is $num and $str")
 
   // parallelism on IOs
   // convert a sequential IO to a parallel IO
-  val parIO1: IO.Par[Int] = Parallel[IO].parallel(meaningOfLife.debug)
+  val parIO1: IO.Par[Int]    = Parallel[IO].parallel(meaningOfLife.debug)
   val parIO2: IO.Par[String] = Parallel[IO].parallel(favoriteLanguage.debug)
 
   import cats.effect.implicits.*
@@ -45,8 +45,8 @@ object IOParallelism extends IOApp.Simple {
   // compose a success and a failure
   val parallelWithFailure: IO[String] = (meaningOfLife.debug, aFailure.debug).parMapN(_ + _)
   // compose a failure with another failure
-  val anotherFailure: IO[String] =  IO.raiseError(new RuntimeException("Second failure"))
-  val twoFailures: IO[String] = (aFailure.debug, anotherFailure.debug).parMapN(_ + _)
+  val anotherFailure: IO[String] = IO.raiseError(new RuntimeException("Second failure"))
+  val twoFailures: IO[String]    = (aFailure.debug, anotherFailure.debug).parMapN(_ + _)
   // the first effect to fail gives the failure of the result
   val twoFailuresDelayed: IO[String] = (IO(Thread.sleep(1000)) >> aFailure.debug, anotherFailure.debug).parMapN(_ + _)
 

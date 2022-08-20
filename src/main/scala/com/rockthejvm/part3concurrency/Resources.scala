@@ -20,36 +20,35 @@ object Resources extends IOApp.Simple {
 
   val asyncFetchUrl: IO[Unit] = for {
     fib <- (new Connection("rockthejvm.com").open *> IO.sleep((Int.MaxValue) seconds)).start
-    _ <- IO.sleep(1 second) *> fib.cancel
+    _   <- IO.sleep(1 second) *> fib.cancel
   } yield ()
   // problem: leaking resources
 
   val correctAsyncFetchUrl: IO[Unit] = for {
     conn <- IO(new Connection("rockthejvm.com"))
-    fib <- (conn.open *> IO.sleep((Int.MaxValue) seconds)).onCancel(conn.close.void).start
-    _ <- IO.sleep(1 second) *> fib.cancel
+    fib  <- (conn.open *> IO.sleep((Int.MaxValue) seconds)).onCancel(conn.close.void).start
+    _    <- IO.sleep(1 second) *> fib.cancel
   } yield ()
 
   /*
   bracket pattern: someIO.bracket(useResourceCb)(releaseResourceCb)
   bracket is equivalent to try-catches (pure FP)
-  */
+   */
 
   val bracketFetchUrl: IO[Unit] = IO(new Connection("rockthejvm.com"))
     .bracket(conn => conn.open *> IO.sleep((Int.MaxValue) seconds))(conn => conn.close.void)
 
   val bracketProgram: IO[Unit] = for {
     fib <- bracketFetchUrl.start
-    _ <- IO.sleep(1 second) *> fib.cancel
+    _   <- IO.sleep(1 second) *> fib.cancel
   } yield ()
 
-  /**
-   * Exercises: read the current file with the bracket pattern.
-   * - open a scanner
-   * - read the file line by line, every 100 millis
-   * - close the scanner
-   * - if canceled/throws, close the scanner
-   */
+  /** Exercises: read the current file with the bracket pattern.
+    *   - open a scanner
+    *   - read the file line by line, every 100 millis
+    *   - close the scanner
+    *   - if canceled/throws, close the scanner
+    */
   def openFileScanner(path: String): IO[Scanner] =
     IO(new Scanner(new FileReader(new File(path))))
 
@@ -68,9 +67,8 @@ object Resources extends IOApp.Simple {
         IO(s"Closing file at $path").debug >> IO(scanner.close())
       }
 
-  /**
-   * Resources
-   */
+  /** Resources
+    */
   def connectionFromConfig(path: String): IO[Unit] = {
     openFileScanner(path).bracket { scanner =>
       // acquire a connection
@@ -87,22 +85,21 @@ object Resources extends IOApp.Simple {
   // ... at a later part of your code
   val resourceFetchUrl: IO[Unit] = for {
     fib <- connectionResource.use(conn => conn.open >> IO.never).start
-    _ <- IO.sleep(1 second) >> fib.cancel
+    _   <- IO.sleep(1 second) >> fib.cancel
   } yield ()
 
   // resource are equivalent to brackets
-  val simpleResource: IO[String] = IO("some resource")
+  val simpleResource: IO[String]          = IO("some resource")
   val usingResource: String => IO[String] = string => IO(s"using the string $string").debug
   val releaseResource: String => IO[Unit] = string => IO(s"finalizing the string $string").debug.void
 
-  val usingResourceWithBracket: IO[String] = simpleResource.bracket(usingResource)(releaseResource)
+  val usingResourceWithBracket: IO[String]  = simpleResource.bracket(usingResource)(releaseResource)
   val usingResourceWithResource: IO[String] = Resource.make(simpleResource)(releaseResource).use(usingResource)
 
-  /**
-   * Exercises: read the current file with the resource pattern.
-   */
-  def fileScannerResource(path: String): Resource[IO, Scanner] = Resource.make(openFileScanner(path)) {
-    scanner => IO(s"Closing file at $path").debug >> IO(scanner.close())
+  /** Exercises: read the current file with the resource pattern.
+    */
+  def fileScannerResource(path: String): Resource[IO, Scanner] = Resource.make(openFileScanner(path)) { scanner =>
+    IO(s"Closing file at $path").debug >> IO(scanner.close())
   }
 
   def resourceReadFile(path: String): IO[Unit] =
@@ -111,27 +108,28 @@ object Resources extends IOApp.Simple {
 
   def cancelReadFile(path: String): IO[Unit] = for {
     fib <- resourceReadFile(path).start
-    _ <- IO.sleep(2 seconds) >> IO(s"Canceling the reading of file at $path").debug >> fib.cancel
+    _   <- IO.sleep(2 seconds) >> IO(s"Canceling the reading of file at $path").debug >> fib.cancel
   } yield ()
 
   // nested resources
   def connectionFromConfigurationResource(path: String): Resource[IO, Connection] =
-    Resource.make(IO(s"Opening file at $path").debug >> openFileScanner(path))(scanner => IO(s"Closing file at $path").debug >> IO(scanner.close()))
+    Resource
+      .make(IO(s"Opening file at $path").debug >> openFileScanner(path))(scanner => IO(s"Closing file at $path").debug >> IO(scanner.close()))
       .flatMap(scanner => Resource.make(IO(new Connection(scanner.nextLine())))(conn => conn.close.void))
 
   // equivalent
   def connectionFromConfigurationClean(path: String): Resource[IO, Connection] = for {
     scanner <- Resource.make(IO(s"Opening file at $path").debug >> openFileScanner(path))(scanner => IO(s"Closing file at $path").debug >> IO(scanner.close()))
-    conn <- Resource.make(IO(new Connection(scanner.nextLine())))(conn => conn.close.void)
+    conn    <- Resource.make(IO(new Connection(scanner.nextLine())))(conn => conn.close.void)
   } yield conn
 
   val openConnection: IO[String] =
     connectionFromConfigurationClean("src/main/resources/connection.txt")
       .use(conn => conn.open >> IO.never)
-      
+
   val canceledConnection: IO[Unit] = for {
     fib <- openConnection.start
-    _ <- IO.sleep(1 second) >> IO("Canceling!").debug >> fib.cancel
+    _   <- IO.sleep(1 second) >> IO("Canceling!").debug >> fib.cancel
   } yield ()
   // connection + file will close automatically
 
@@ -139,10 +137,9 @@ object Resources extends IOApp.Simple {
   val ioWithFinalizer: IO[String] = IO("Some resource").debug.guarantee(IO("Clean resource").debug.void)
   val ioWithFinalizer_v2: IO[String] = IO("Some resource").debug.guaranteeCase {
     case Outcome.Succeeded(fa) => fa.flatMap(result => IO(s"Releasing resource: $result").debug).void
-    case Outcome.Errored(_) => IO("Nothing to release").debug.void
-    case Outcome.Canceled() => IO("Resource got canceled, releasing what's left").debug.void
+    case Outcome.Errored(_)    => IO("Nothing to release").debug.void
+    case Outcome.Canceled()    => IO("Resource got canceled, releasing what's left").debug.void
   }
-
 
   override def run: IO[Unit] = {
     // bracketReadFile("src/main/scala/com/rockthejvm/part3concurrency/Resources.scala")

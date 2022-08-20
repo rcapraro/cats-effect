@@ -19,7 +19,7 @@ object CyclicBarriers extends IOApp.Simple {
   Any further fiber will again block until we have exactly N fibers waiting.
   ...
     And so on.
-  */
+   */
 
   // example: signing up for a social networks just about to be launched
 
@@ -33,9 +33,9 @@ object CyclicBarriers extends IOApp.Simple {
   } yield ()
 
   def openNetwork(): IO[Unit] = for {
-    _ <- IO("[announcer] The Rock the JVM social network is up for registration! Launching when we have 10 users!").debug
+    _       <- IO("[announcer] The Rock the JVM social network is up for registration! Launching when we have 10 users!").debug
     barrier <- CyclicBarrier[IO](10)
-    _ <- (1 to 20).toList.parTraverse(id => createUser(id, barrier))
+    _       <- (1 to 20).toList.parTraverse(id => createUser(id, barrier))
   } yield ()
 
   /*
@@ -54,12 +54,12 @@ object CyclicBarriers extends IOApp.Simple {
 
     def apply(count: Int): IO[CBarrier] = for {
       signal <- Deferred[IO, Unit]
-      state <- Ref[IO].of(State(count, signal))
+      state  <- Ref[IO].of(State(count, signal))
     } yield new CBarrier {
       override def await: IO[Unit] = Deferred[IO, Unit].flatMap { newSignal =>
         state.modify {
           case State(1, signal) => State(count, newSignal) -> signal.complete(()).void
-          case State(n, signal) => State(n - 1, signal) -> signal.get
+          case State(n, signal) => State(n - 1, signal)    -> signal.get
         }.flatten
       }
     }

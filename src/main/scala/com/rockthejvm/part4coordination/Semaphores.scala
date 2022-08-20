@@ -20,42 +20,42 @@ object Semaphores extends IOApp.Simple {
     _ <- IO(s"[session $id] waiting to log in...").debug
     _ <- sem.acquire
     // critical section
-    _ <- IO(s"[session $id] logged in, working...").debug
+    _   <- IO(s"[session $id] logged in, working...").debug
     res <- doWorkWhileLoggedIn()
-    _ <- IO(s"[session $id] done: $res, logging out...").debug
+    _   <- IO(s"[session $id] done: $res, logging out...").debug
     // end of critical section
     _ <- sem.release
   } yield res
 
   def demoSemaphore(): IO[Unit] = for {
-    sem <- Semaphore[IO](2)
+    sem      <- Semaphore[IO](2)
     user1Fib <- login(1, sem).start
     user2Fib <- login(2, sem).start
     user3Fib <- login(3, sem).start
-    _ <- user1Fib.join
-    _ <- user2Fib.join
-    _ <- user3Fib.join
+    _        <- user1Fib.join
+    _        <- user2Fib.join
+    _        <- user3Fib.join
   } yield ()
 
   def weightedLogin(id: Int, requiredPermits: Int, sem: Semaphore[IO]): IO[Int] = for {
     _ <- IO(s"[session $id] waiting to log in...").debug
     _ <- sem.acquireN(requiredPermits)
     // critical section
-    _ <- IO(s"[session $id] logged in, working...").debug
+    _   <- IO(s"[session $id] logged in, working...").debug
     res <- doWorkWhileLoggedIn()
-    _ <- IO(s"[session $id] done: $res, logging out...").debug
+    _   <- IO(s"[session $id] done: $res, logging out...").debug
     // end of critical section
     _ <- sem.releaseN(requiredPermits)
   } yield res
 
   def demoWeightedSemaphore(): IO[Unit] = for {
-    sem <- Semaphore[IO](2)
+    sem      <- Semaphore[IO](2)
     user1Fib <- weightedLogin(1, 1, sem).start
     user2Fib <- weightedLogin(2, 2, sem).start
     user3Fib <- weightedLogin(3, 3, sem).start
-    _ <- user1Fib.join
-    _ <- user2Fib.join
-    _ <- user3Fib.join
+    _        <- user1Fib.join
+    _        <- user2Fib.join
+    _        <- user3Fib.join
   } yield ()
 
   /*
@@ -69,12 +69,12 @@ object Semaphores extends IOApp.Simple {
   val users: IO[List[Int]] = (1 to 10).toList.parTraverse { id =>
     for {
       sem <- mutex
-      _ <- IO(s"[session $id] waiting to log in...").debug
-      _ <- sem.acquire
+      _   <- IO(s"[session $id] waiting to log in...").debug
+      _   <- sem.acquire
       // critical section
-      _ <- IO(s"[session $id] logged in, working...").debug
+      _   <- IO(s"[session $id] logged in, working...").debug
       res <- doWorkWhileLoggedIn()
-      _ <- IO(s"[session $id] done: $res, logging out...").debug
+      _   <- IO(s"[session $id] done: $res, logging out...").debug
       // end of critical section
       _ <- sem.release
     } yield res
@@ -94,15 +94,14 @@ object Semaphores extends IOApp.Simple {
         _ <- IO(s"[session $id] waiting to log in...").debug
         _ <- sem.acquire
         // critical section
-        _ <- IO(s"[session $id] logged in, working...").debug
+        _   <- IO(s"[session $id] logged in, working...").debug
         res <- doWorkWhileLoggedIn()
-        _ <- IO(s"[session $id] done: $res, logging out...").debug
+        _   <- IO(s"[session $id] done: $res, logging out...").debug
         // end of critical section
         _ <- sem.release
       } yield res
     }
   }
-
 
   override def run: IO[Unit] = {
     // demoSemaphore()
@@ -110,6 +109,5 @@ object Semaphores extends IOApp.Simple {
     // users.debug.void
     usersFixed.debug.void
   }
-
 
 }

@@ -32,21 +32,20 @@ object PolymorphicCoordination extends IOApp.Simple {
       _ <- IO("[Notifier] ALARM!").debug
     } yield ()
 
-
     def tickingCounter(counter: Ref[IO, Int], signal: Deferred[IO, Unit]): IO[Unit] = for {
-      _ <- IO.sleep(1 second)
+      _     <- IO.sleep(1 second)
       count <- counter.updateAndGet(_ + 1)
-      _ <- IO(s"[Counter] $count").debug
-      _ <- if (count >= 10) signal.complete(()) else tickingCounter(counter, signal)
+      _     <- IO(s"[Counter] $count").debug
+      _     <- if (count >= 10) signal.complete(()) else tickingCounter(counter, signal)
     } yield ()
 
     for {
-      counter <- Ref[IO].of(0)
-      signal <- Deferred[IO, Unit]
-      notificationFib <- notifyAlarm(signal).start
+      counter           <- Ref[IO].of(0)
+      signal            <- Deferred[IO, Unit]
+      notificationFib   <- notifyAlarm(signal).start
       tickingCounterFib <- tickingCounter(counter, signal).start
-      _ <- notificationFib.join
-      _ <- tickingCounterFib.join
+      _                 <- notificationFib.join
+      _                 <- tickingCounterFib.join
     } yield ()
   }
 
@@ -61,21 +60,20 @@ object PolymorphicCoordination extends IOApp.Simple {
       _ <- concurrent.pure("[Notifier] ALARM!").debug
     } yield ()
 
-
     def tickingCounter(counter: Ref[F, Int], signal: Deferred[F, Unit]): F[Unit] = for {
-      _ <- unsafeSleep[F, Throwable](1 second)
+      _     <- unsafeSleep[F, Throwable](1 second)
       count <- counter.updateAndGet(_ + 1)
-      _ <- concurrent.pure(s"[Counter] $count").debug
-      _ <- if (count >= 10) signal.complete(()).void else tickingCounter(counter, signal)
+      _     <- concurrent.pure(s"[Counter] $count").debug
+      _     <- if (count >= 10) signal.complete(()).void else tickingCounter(counter, signal)
     } yield ()
 
     for {
-      counter <- concurrent.ref(0)
-      signal <- concurrent.deferred[Unit]
-      notificationFib <- notifyAlarm(signal).start
+      counter           <- concurrent.ref(0)
+      signal            <- concurrent.deferred[Unit]
+      notificationFib   <- notifyAlarm(signal).start
       tickingCounterFib <- tickingCounter(counter, signal).start
-      _ <- notificationFib.join
-      _ <- tickingCounterFib.join
+      _                 <- notificationFib.join
+      _                 <- tickingCounterFib.join
     } yield ()
   }
 
@@ -83,33 +81,33 @@ object PolymorphicCoordination extends IOApp.Simple {
   Exercises
     1. Generalize racePair
     2. Generalize the Mutex concurrency primitive for any F
-  */
+   */
   type RaceResult[F[_], A, B] = Either[
     (Outcome[F, Throwable, A], Fiber[F, Throwable, B]), // (winner result, loser fiber)
-    (Fiber[F, Throwable, A], Outcome[F, Throwable, B]) // (loser fiber, winner result)
+    (Fiber[F, Throwable, A], Outcome[F, Throwable, B])  // (loser fiber, winner result)
   ]
 
   type EitherOutcome[F[_], A, B] = Either[Outcome[F, Throwable, A], Outcome[F, Throwable, B]]
 
-  import cats.effect.syntax.monadCancel.* //guaranteeCase extension method
-  import cats.effect.syntax.spawn.* // start extension method
+  import cats.effect.syntax.monadCancel.* // guaranteeCase extension method
+  import cats.effect.syntax.spawn.*       // start extension method
 
   def ourRacePair[F[_], A, B](ioa: F[A], iob: F[B])(using concurrent: Concurrent[F]): F[RaceResult[F, A, B]] =
     concurrent.uncancelable { poll =>
       for {
         signal <- concurrent.deferred[EitherOutcome[F, A, B]]
-        fibA <- ioa.guaranteeCase(outcomeA => signal.complete(Left(outcomeA)).void).start
-        fibB <- iob.guaranteeCase(outcomeB => signal.complete(Right(outcomeB)).void).start
+        fibA   <- ioa.guaranteeCase(outcomeA => signal.complete(Left(outcomeA)).void).start
+        fibB   <- iob.guaranteeCase(outcomeB => signal.complete(Right(outcomeB)).void).start
         result <- poll(signal.get).onCancel { // blocking call - should be cancelable
           for {
             cancelFibA <- fibA.cancel.start
             cancelFibB <- fibB.cancel.start
-            _ <- cancelFibA.join
-            _ <- cancelFibB.join
+            _          <- cancelFibA.join
+            _          <- cancelFibB.join
           } yield ()
         }
       } yield result match {
-        case Left(outcomeA) => Left((outcomeA, fibB))
+        case Left(outcomeA)  => Left((outcomeA, fibB))
         case Right(outcomeB) => Right((fibA, outcomeB))
       }
     }
